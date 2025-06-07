@@ -22,6 +22,8 @@ SEARCH_PHRASES = [
     "example phrase 1",
 ]
 
+WHITELISTED_SOURCE_CHAT_IDS = []
+
 IGNORE_CHAT_IDS = []
 
 MESSAGE_RECIPIENT_ID = "TARGET_USER_ID_OR_USERNAME"  # Replace with the chat ID where you want to resend messages
@@ -55,6 +57,19 @@ async def handle_message(client: Client, message: Message):
     if not message_text:
         logger.info(f"chat ID: {chat_id} | Message has no text or caption.")
         return
+
+    if chat_id not in WHITELISTED_SOURCE_CHAT_IDS and chat_id not in IGNORE_CHAT_IDS:
+        chat_name = message.chat.title if message.chat else "Unknown chat name"
+        logger.warning(
+            f"chat ID: {chat_id}, name: {chat_name} is not in WHITELISTED_SOURCE_CHAT_IDS or IGNORE_CHAT_IDS."
+        )
+        try:
+            await client.send_message(
+                chat_id=MESSAGE_RECIPIENT_ID,
+                text=f"chat not in any lists: {chat_id},  # {chat_name}",
+            )
+        except Exception as e:
+            logger.error(f"Error resending message: {e}")
 
     message_text_lower = message_text.lower() if message_text else ""
     matched_phrase = None
