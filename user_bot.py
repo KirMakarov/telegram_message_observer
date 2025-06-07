@@ -13,9 +13,21 @@ bot = Client(name=name, api_id=api_id, api_hash=api_hash)
 MESSAGE_RECIPIENT_ID = "TARGET_USER_ID_OR_USERNAME"  # Replace with the chat ID where you want to resend messages
 
 
+def get_chat_id(message: Message) -> str:
+    if message.chat is not None:
+        return str(message.chat.id)
+    return "Unknown"
+
+
 @bot.on_message()
 async def handle_message(client: Client, message: Message):
     message_text = message.text or message.caption
+
+    if not message_text:
+        chat_id = get_chat_id(message)
+        print(f"chat ID: {chat_id} | Message has no text or caption.")
+        return
+
     if message_text:
         try:
             await client.send_message(
