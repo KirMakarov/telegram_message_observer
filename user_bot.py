@@ -53,7 +53,7 @@ async def handle_message(client: Client, message: Message):
         )
         return
 
-    message_text = message.text or message.caption
+    message_text = message.text or message.caption or ""
     if not message_text:
         logger.info(f"chat ID: {chat_id} | Message has no text or caption.")
         return
@@ -71,7 +71,13 @@ async def handle_message(client: Client, message: Message):
         except Exception as e:
             logger.error(f"Error resending message: {e}")
 
-    logger.info(f"chat ID: {chat_id} | text message: {message_text[:50]}...")
+    try:
+        utf8_safe_text = message_text.encode("utf-8", errors="replace").decode(
+            "utf-8", errors="replace"
+        )
+        logger.info(f"chat ID: {chat_id} | text message: {utf8_safe_text[:50]}...")
+    except Exception as e:
+        logger.error(f"Error printing message: {e}")
 
     message_text_lower = message_text.lower() if message_text else ""
     matched_phrase = None
