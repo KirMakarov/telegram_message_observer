@@ -71,6 +71,8 @@ async def handle_message(client: Client, message: Message):
         except Exception as e:
             logger.error(f"Error resending message: {e}")
 
+    logger.info(f"chat ID: {chat_id} | text message: {message_text[:50]}...")
+
     message_text_lower = message_text.lower() if message_text else ""
     matched_phrase = None
     for phrase in SEARCH_PHRASES:
