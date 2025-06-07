@@ -1,6 +1,14 @@
+import logging
+
 from decouple import config
 from pyrogram import Client
 from pyrogram.types import Message
+
+# Configure logger
+logging.basicConfig(
+    format="%(asctime)s | %(levelname)s | %(message)s", level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 
 api_id: int = config("API_ID")  # type: ignore
@@ -28,14 +36,14 @@ async def handle_message(client: Client, message: Message):
     message_text = message.text or message.caption
     if not message_text:
         chat_id = get_chat_id(message)
-        print(f"chat ID: {chat_id} | Message has no text or caption.")
+        logger.info(f"chat ID: {chat_id} | Message has no text or caption.")
         return
 
     message_text_lower = message_text.lower() if message_text else ""
     phrase_found = False
     for phrase in SEARCH_PHRASES:
         if phrase.lower() in message_text_lower:
-            print(f"Found search phrase '{phrase}' in message.")
+            logger.info(f"Found search phrase '{phrase}' in message.")
             phrase_found = True
             break
 
@@ -46,11 +54,11 @@ async def handle_message(client: Client, message: Message):
                 text=message_text,
             )
         except Exception as e:
-            print(f"Error resending message: {e}")
+            logger.error(f"Error resending message: {e}")
     else:
-        print("No search phrases found in the message text. Message not resent.")
+        logger.info("No search phrases found in the message text. Message not resent.")
 
 
 if __name__ == "__main__":
-    print("User bot started. Listening for messages...")
+    logger.info("User bot started. Listening for messages...")
     bot.run()
