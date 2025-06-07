@@ -33,6 +33,15 @@ def get_chat_id(message: Message) -> str:
     return "Unknown"
 
 
+def make_notification_message(message: Message, phrase: str) -> str:
+    message_text = message.text or message.caption
+    return f"""
+search phrase << {phrase} >> found in message:
+{message_text}
+
+link: {message.link}"""
+
+
 @bot.on_message()
 async def handle_message(client: Client, message: Message):
     chat_id = get_chat_id(message)
@@ -48,18 +57,18 @@ async def handle_message(client: Client, message: Message):
         return
 
     message_text_lower = message_text.lower() if message_text else ""
-    phrase_found = False
+    matched_phrase = None
     for phrase in SEARCH_PHRASES:
         if phrase.lower() in message_text_lower:
             logger.info(f"Found search phrase '{phrase}' in message.")
-            phrase_found = True
+            matched_phrase = phrase
             break
 
-    if phrase_found:
+    if matched_phrase:
         try:
             await client.send_message(
                 chat_id=MESSAGE_RECIPIENT_ID,
-                text=message_text,
+                text=make_notification_message(message, matched_phrase),
             )
         except Exception as e:
             logger.error(f"Error resending message: {e}")
