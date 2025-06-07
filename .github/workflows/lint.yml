@@ -1,0 +1,27 @@
+name: Lint
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '*.py'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '*.py'
+
+
+jobs:
+  flake8-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source repository
+        uses: actions/checkout@v3
+      - name: Set up Python environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Run flake8
+        uses: py-actions/flake8@v2
+        with:
+          args: "--ignore=E501,W503,E203,E402,E712 --exclude .git --max-line-length 88"
