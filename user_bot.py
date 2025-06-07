@@ -22,6 +22,8 @@ SEARCH_PHRASES = [
     "example phrase 1",
 ]
 
+IGNORE_CHAT_IDS = []
+
 MESSAGE_RECIPIENT_ID = "TARGET_USER_ID_OR_USERNAME"  # Replace with the chat ID where you want to resend messages
 
 
@@ -33,9 +35,15 @@ def get_chat_id(message: Message) -> str:
 
 @bot.on_message()
 async def handle_message(client: Client, message: Message):
+    chat_id = get_chat_id(message)
+    if chat_id in IGNORE_CHAT_IDS:
+        logger.info(
+            f"chat ID: {chat_id} | message is ignored: chat is in IGNORE_CHAT_IDS."
+        )
+        return
+
     message_text = message.text or message.caption
     if not message_text:
-        chat_id = get_chat_id(message)
         logger.info(f"chat ID: {chat_id} | Message has no text or caption.")
         return
 
