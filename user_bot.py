@@ -98,6 +98,12 @@ async def handle_message(client: Client, message: Message):
     else:
         logger.info("No search phrases found in the message text. Message not resent.")
 
+    # Mark the message as read
+    try:
+        await client.read_chat_history(chat_id, message.id)
+    except Exception as e:
+        logger.error(f"Error marking message as read: {e}")
+
 
 if __name__ == "__main__":
     logger.info("User bot started. Listening for messages...")
