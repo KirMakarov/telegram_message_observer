@@ -39,7 +39,21 @@ A Telegram userbot for monitoring messages in specified chats and notifying you 
    pip install -r requirements.txt
    ```
 
-4. **Run the bot:**
+4. **Set up environment variables:**
+   Create a `.env` file in the project root with the following content:
+
+   ```env
+   API_ID=your_telegram_api_id
+   API_HASH=your_telegram_api_hash
+   LOGIN=your_session_name
+   PHONE=your_phone_number (if needed)
+   ```
+
+5. **Configure search and ignore lists:**
+
+   - Edit `user_bot.py` to set `SOURCE_CHAT_IDS`, `IGNORE_CHAT_IDS`, and `SEARCH_PHRASES` as needed.
+
+6. **Run the bot:**
    ```sh
    python3.13 user_bot.py
    ```
