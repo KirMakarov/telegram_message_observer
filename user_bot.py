@@ -29,10 +29,11 @@ IGNORE_CHAT_IDS = []
 MESSAGE_RECIPIENT_ID = "TARGET_USER_ID_OR_USERNAME"  # Replace with the chat ID where you want to resend messages
 
 
-def get_chat_id(message: Message) -> str:
-    if message.chat is not None:
-        return str(message.chat.id)
-    return "Unknown"
+def get_chat_id(message: Message) -> str | int:
+    if message.chat is None or message.chat.id is None:
+        # FIXME: Use integer chat ID for consistency
+        return "Unknown"
+    return message.chat.id
 
 
 def make_notification_message(message: Message, phrase: str) -> str:
