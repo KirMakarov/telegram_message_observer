@@ -57,6 +57,23 @@ A Telegram userbot for monitoring messages in specified chats and notifying you 
    python3.13 user_bot.py
    ```
 
+## Roadmap
+
+- [x] Add white and black lists of chats
+- [x] Add mark message as read
+- [ ] Switch on another lib - Telethon
+- [ ] Add using uv package manager
+- [ ] Add silent time for sending messages
+- [ ] checking the last sent messages, don't send repeating from different channel
+- [ ] Add rate limit for sending messages
+- [ ] Add exclude phrases for each search phrase
+- [ ] Add search in history during offline time
+- [ ] Add ability to add/remove search phrases via user chat
+- [ ] Move storong search phrases from code
+- [ ] Add ability to add/remove users who can use the bot via user chat
+- [ ] Add user subscription by search phrases
+- [ ] Add semantic search
+
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
