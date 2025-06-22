@@ -39,10 +39,40 @@ A Telegram userbot for monitoring messages in specified chats and notifying you 
    pip install -r requirements.txt
    ```
 
-4. **Run the bot:**
+4. **Set up environment variables:**
+   Create a `.env` file in the project root with the following content:
+
+   ```env
+   API_ID=your_telegram_api_id
+   API_HASH=your_telegram_api_hash
+   LOGIN=your_session_name
+   ```
+
+5. **Configure search and ignore lists:**
+
+   - Edit `user_bot.py` to set `SOURCE_CHAT_IDS`, `IGNORE_CHAT_IDS`, and `SEARCH_PHRASES` as needed.
+
+6. **Run the bot:**
    ```sh
    python3.13 user_bot.py
    ```
+
+## Roadmap
+
+- [x] Add white and black lists of chats
+- [x] Add mark message as read
+- [ ] Switch on another lib - Telethon
+- [ ] Add using uv package manager
+- [ ] Add silent time for sending messages
+- [ ] checking the last sent messages, don't send repeating from different channel
+- [ ] Add rate limit for sending messages
+- [ ] Add exclude phrases for each search phrase
+- [ ] Add search in history during offline time
+- [ ] Add ability to add/remove search phrases via user chat
+- [ ] Move storong search phrases from code
+- [ ] Add ability to add/remove users who can use the bot via user chat
+- [ ] Add user subscription by search phrases
+- [ ] Add semantic search
 
 ## License
 

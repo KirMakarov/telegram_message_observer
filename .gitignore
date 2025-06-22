@@ -161,3 +161,7 @@ cython_debug/
 
 #  MacOS system files
 .DS_Store
+
+#  These files are used by the Telethon library to store session data.
+m_undefined.session
+m_undefined.session-journal
