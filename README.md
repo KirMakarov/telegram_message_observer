@@ -46,7 +46,6 @@ A Telegram userbot for monitoring messages in specified chats and notifying you 
    API_ID=your_telegram_api_id
    API_HASH=your_telegram_api_hash
    LOGIN=your_session_name
-   PHONE=your_phone_number (if needed)
    ```
 
 5. **Configure search and ignore lists:**
