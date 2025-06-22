@@ -1,4 +1,5 @@
 import logging
+from typing import Union
 
 from decouple import config
 from pyrogram import Client
@@ -11,44 +12,49 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-api_id: int = config("API_ID")  # type: ignore
-api_hash: str = config("API_HASH")  # type: ignore
-name: str = config("LOGIN")  # type: ignore
+API_ID: int = config("API_ID", cast=int)
+API_HASH: str = config("API_HASH", cast=str)
+LOGIN: str = config("LOGIN", cast=str)
+
+SEARCH_PHRASES: list[str] = []
+WHITELISTED_SOURCE_CHAT_IDS: set[int] = set()
+IGNORE_CHAT_IDS: set[int] = set()
+# the chat ID or username where you want to resend messages
+MESSAGE_RECIPIENT_ID: Union[int, str] = "TARGET_USER_ID_OR_USERNAME"
 
 
-bot = Client(name=name, api_id=api_id, api_hash=api_hash)
-
-SEARCH_PHRASES = [
-    "example phrase 1",
-]
-
-WHITELISTED_SOURCE_CHAT_IDS = []
-
-IGNORE_CHAT_IDS = []
-
-MESSAGE_RECIPIENT_ID = "TARGET_USER_ID_OR_USERNAME"  # Replace with the chat ID where you want to resend messages
+bot = Client(name=LOGIN, api_id=API_ID, api_hash=API_HASH)
 
 
-def get_chat_id(message: Message) -> str | int:
-    if message.chat is None or message.chat.id is None:
-        # FIXME: Use integer chat ID for consistency
-        return "Unknown"
-    return message.chat.id
+def get_chat_id(message: Message) -> Union[str, int]:
+    """Extract chat ID from message, fallback to 'Unknown'."""
+    return getattr(getattr(message, "chat", None), "id", "Unknown")
 
 
 def make_notification_message(message: Message, phrase: str) -> str:
-    message_text = message.text or message.caption
-    return f"""
-search phrase << {phrase} >> found in message:
-{message_text}
+    """Format notification message for matched phrase."""
+    message_text = message.text or message.caption or ""
+    link = getattr(message, "link", None)
+    link_info = f"\n\nLink: {link}" if link else ""
+    return f"Found '{phrase}' in message:\n{message_text}{link_info}"
 
-link: {message.link}"""
+
+def is_message_ignored(chat_id: Union[int, str]) -> bool:
+    return chat_id in IGNORE_CHAT_IDS
 
 
-@bot.on_message()
+def is_message_whitelisted(chat_id: Union[int, str]) -> bool:
+    return chat_id in WHITELISTED_SOURCE_CHAT_IDS
+
+
+def get_chat_name(message: Message) -> str:
+    return getattr(getattr(message, "chat", None), "title", "Unknown chat name")
+
+
+@bot.on_message()  # type: ignore[misc]
 async def handle_message(client: Client, message: Message):
     chat_id = get_chat_id(message)
-    if chat_id in IGNORE_CHAT_IDS:
+    if is_message_ignored(chat_id):
         logger.info(
             f"chat ID: {chat_id} | message is ignored: chat is in IGNORE_CHAT_IDS."
         )
@@ -59,8 +65,8 @@ async def handle_message(client: Client, message: Message):
         logger.info(f"chat ID: {chat_id} | Message has no text or caption.")
         return
 
-    if chat_id not in WHITELISTED_SOURCE_CHAT_IDS and chat_id not in IGNORE_CHAT_IDS:
-        chat_name = message.chat.title if message.chat else "Unknown chat name"
+    if not (is_message_whitelisted(chat_id) or is_message_ignored(chat_id)):
+        chat_name = get_chat_name(message)
         logger.warning(
             f"chat ID: {chat_id}, name: {chat_name} is not in WHITELISTED_SOURCE_CHAT_IDS or IGNORE_CHAT_IDS."
         )
@@ -106,6 +112,10 @@ async def handle_message(client: Client, message: Message):
         logger.error(f"Error marking message as read: {e}")
 
 
-if __name__ == "__main__":
+def main() -> None:
     logger.info("User bot started. Listening for messages...")
     bot.run()
+
+
+if __name__ == "__main__":
+    main()
