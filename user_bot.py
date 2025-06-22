@@ -53,6 +53,20 @@ def get_chat_name(message: Message) -> str:
 
 @bot.on_message()  # type: ignore[misc]
 async def handle_message(client: Client, message: Message):
+    """
+    Asynchronously handles incoming Telegram messages by performing the following actions:
+    - Checks if the message's chat ID is in the ignored list and skips processing if so.
+    - Ensures the message contains text or a caption; logs and returns if neither is present.
+    - Logs a warning and notifies a recipient if the chat ID is not whitelisted or ignored.
+    - Logs the message text in a UTF-8 safe manner.
+    - Searches for predefined phrases in the message text; if found, sends a notification to a recipient.
+    - Marks the message as read after processing.
+    - Handles and logs exceptions that may occur during message sending, logging, or marking as read.
+
+    Args:
+        client (Client): The Telegram client instance used to interact with the API.
+        message (Message): The incoming Telegram message to be processed.
+    """
     chat_id = get_chat_id(message)
     if is_message_ignored(chat_id):
         logger.info(
