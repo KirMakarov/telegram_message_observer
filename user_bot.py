@@ -66,7 +66,7 @@ async def handle_message(
     message: Message,
     settings: ChatSettings,
     search_phrases: SearchPhrases,
-):
+) -> None:
     """
     Asynchronously handles incoming Telegram messages by performing the following actions:
     - Checks if the message's chat ID is in the ignored list and skips processing if so.

@@ -29,8 +29,8 @@ A Telegram userbot for monitoring messages in specified chats and notifying you 
 2. **Create and activate a virtual environment (recommended):**
 
    ```sh
-   python3.14 -m venv venv
-   source venv/bin/activate
+   python3.14 -m venv .venv
+   source .venv/bin/activate
    ```
 
 3. **Install Python dependencies:**
@@ -65,6 +65,30 @@ A Telegram userbot for monitoring messages in specified chats and notifying you 
    ```sh
    python3.14 user_bot.py
    ```
+
+## Development checks
+
+Install the development dependencies and enable the commit hook:
+
+```sh
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/pre-commit install
+```
+
+Run the same checks as CI from the project root:
+
+```sh
+.venv/bin/pre-commit run --all-files
+.venv/bin/python -m unittest discover -s tests -v
+```
+
+Pre-commit creates separate Python 3.14 environments for its hooks on first
+use, so commits do not require the project environment to be activated. The
+hook runs Ruff lint and format checks on tracked Python source and tests, and
+mypy on the Kurigram source. Ruff's formatter can apply changes with
+`.venv/bin/ruff format .`. Mypy does not type-check Kurigram's imported library internals;
+the separate Telethon version is excluded from these checks. Offline tests do
+not require Telegram credentials or a network connection.
 
 ## Roadmap
 

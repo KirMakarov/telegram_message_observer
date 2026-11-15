@@ -1,40 +1,19 @@
-name: Offline tests
+name: Quality and offline tests
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'user_bot.py'
-      - 'tests/**'
-      - 'requirements*.txt'
-      - 'setup.cfg'
-      - '.gitignore'
-      - '.pre-commit-config.yaml'
-      - '.env.template'
-      - 'chat_settings.example.toml'
-      - 'search_phrases.example.txt'
-      - '.github/workflows/**'
   pull_request:
     branches: [main]
-    paths:
-      - 'user_bot.py'
-      - 'tests/**'
-      - 'requirements*.txt'
-      - 'setup.cfg'
-      - '.gitignore'
-      - '.pre-commit-config.yaml'
-      - '.env.template'
-      - 'chat_settings.example.toml'
-      - 'search_phrases.example.txt'
-      - '.github/workflows/**'
 
 jobs:
-  tests:
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
-      - run: python -m pip install -r requirements.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - run: pre-commit run --all-files
       - run: python -m unittest discover -s tests -v

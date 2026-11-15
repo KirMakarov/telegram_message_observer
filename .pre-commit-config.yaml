@@ -1,20 +1,43 @@
+exclude: '^(new_lib/|\.scratch/|typings/telethon)'
+default_language_version:
+  python: python3.14
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+  - repo: local
     hooks:
-    -   id: check-yaml
-    -   id: end-of-file-fixer
-    -   id: trailing-whitespace
--   repo: https://github.com/psf/black
-    rev: 26.10.1
-    hooks:
-    -   id: black
--   repo: https://github.com/pycqa/flake8
-    rev: 6.1.0
-    hooks:
-    -   id: flake8
-        args: [--max-line-length=88]
--   repo: https://github.com/asottile/reorder_python_imports
-    rev: v3.10.0
-    hooks:
-    -   id: reorder-python-imports
+      - id: check-yaml
+        name: check yaml
+        entry: check-yaml
+        language: python
+        additional_dependencies: [pre-commit-hooks==5.0.0]
+        types: [yaml]
+      - id: end-of-file-fixer
+        name: fix end of files
+        entry: end-of-file-fixer
+        language: python
+        additional_dependencies: [pre-commit-hooks==5.0.0]
+        types: [text]
+      - id: trailing-whitespace
+        name: trim trailing whitespace
+        entry: trailing-whitespace-fixer
+        language: python
+        additional_dependencies: [pre-commit-hooks==5.0.0]
+        types: [text]
+      - id: ruff-check
+        name: ruff check
+        entry: ruff check --force-exclude
+        language: python
+        additional_dependencies: [ruff==0.14.14]
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format
+        entry: ruff format --check --force-exclude
+        language: python
+        additional_dependencies: [ruff==0.14.14]
+        types_or: [python, pyi]
+      - id: mypy
+        name: mypy
+        entry: mypy .
+        language: python
+        additional_dependencies: [mypy==1.19.1, Kurigram==2.2.27]
+        pass_filenames: false
+        always_run: true

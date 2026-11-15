@@ -283,14 +283,18 @@ recipient = 12345
         )
         phrase_path = Path(self.directory.name) / "search_phrases.txt"
         phrase_path.write_text("hello\n", encoding="utf-8")
-        with chdir(self.directory.name), patch(
-            "user_bot.config",
-            side_effect=lambda key, cast: {
-                "LOGIN": "test",
-                "API_ID": 1,
-                "API_HASH": "hash",
-            }[key],
-        ), patch("user_bot.Client") as client_type:
+        with (
+            chdir(self.directory.name),
+            patch(
+                "user_bot.config",
+                side_effect=lambda key, cast: {
+                    "LOGIN": "test",
+                    "API_ID": 1,
+                    "API_HASH": "hash",
+                }[key],
+            ),
+            patch("user_bot.Client") as client_type,
+        ):
             bot = client_type.return_value
             handlers = []
             bot.on_message.return_value = (
@@ -316,9 +320,10 @@ recipient = 12345
             self.assertEqual(client.read, [(3, 42), (1, 42)])
 
     def test_invalid_settings_prevent_startup(self):
-        with patch("user_bot.Path", return_value=self.path), patch(
-            "user_bot.Client"
-        ) as client_type:
+        with (
+            patch("user_bot.Path", return_value=self.path),
+            patch("user_bot.Client") as client_type,
+        ):
             with self.assertRaisesRegex(ValueError, "Cannot load chat settings"):
                 user_bot.main()
             client_type.assert_not_called()
@@ -417,15 +422,17 @@ class SearchPhraseReloadTests(unittest.IsolatedAsyncioTestCase):
                 elif case == "directory":
                     phrase_path.unlink()
                     phrase_path.mkdir()
-                with chdir(self.directory.name), patch(
-                    "user_bot.Client"
-                ) as client_type, patch(
-                    "user_bot.config",
-                    side_effect=lambda key, cast: {
-                        "LOGIN": "test",
-                        "API_ID": 1,
-                        "API_HASH": "hash",
-                    }[key],
+                with (
+                    chdir(self.directory.name),
+                    patch("user_bot.Client") as client_type,
+                    patch(
+                        "user_bot.config",
+                        side_effect=lambda key, cast: {
+                            "LOGIN": "test",
+                            "API_ID": 1,
+                            "API_HASH": "hash",
+                        }[key],
+                    ),
                 ):
                     with self.assertRaisesRegex(
                         ValueError, "Cannot read search phrases"

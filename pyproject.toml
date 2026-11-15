@@ -1,0 +1,16 @@
+[tool.ruff]
+target-version = "py314"
+extend-exclude = ["new_lib", ".scratch", "typings/telethon.pyi", "typings/telethon.tl.types.pyi"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.14"
+mypy_path = "typings"
+exclude = ['(^|/)(tests|new_lib|typings|\.scratch|\.venv|venv|env)/']
+
+[[tool.mypy.overrides]]
+module = ["pyrogram", "pyrogram.*"]
+follow_imports = "skip"
