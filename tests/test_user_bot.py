@@ -277,6 +277,8 @@ class SearchPhraseReloadTests(unittest.IsolatedAsyncioTestCase):
         await self.process("gamma")
         self.path.write_text("delta\n", encoding="utf-8")
         await self.process("DELTA")
+        self.path.write_text("", encoding="utf-8")
+        await self.process("DELTA")
         self.assertEqual(
             self.client.sent,
             [
@@ -286,7 +288,7 @@ class SearchPhraseReloadTests(unittest.IsolatedAsyncioTestCase):
                 ("recipient", "Found 'delta' in message:\nDELTA"),
             ],
         )
-        self.assertEqual(self.client.read, [(1, 42)] * 5)
+        self.assertEqual(self.client.read, [(1, 42)] * 6)
 
     async def test_read_error_keeps_last_successful_list_and_recovers(self):
         self.path.write_text("beta\n", encoding="utf-8")
