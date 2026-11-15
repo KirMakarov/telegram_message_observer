@@ -129,16 +129,20 @@ class HandlerTests(unittest.IsolatedAsyncioTestCase):
         original_files = {path.name: path.read_bytes() for path in directory.iterdir()}
         text = "first private text sentinel"
         caption = "second private caption sentinel"
-        with chdir(directory), self.assertLogs("user_bot", level="INFO") as logs:
+        unmatched = "unmatched private body sentinel"
+        with chdir(directory), self.assertLogs(level="INFO") as logs:
             await self.handle_message(self.client, message(chat_id=3, text=text))
             await self.handle_message(self.client, message(caption=caption))
-        self.assertNotIn(text, "\n".join(logs.output))
-        self.assertNotIn(caption, "\n".join(logs.output))
+            await self.handle_message(self.client, message(text=unmatched))
+        log_output = "\n".join(logs.output)
+        for body in (text, caption, unmatched):
+            self.assertNotIn(body, log_output)
+            self.assertNotIn(body[:10], log_output)
         self.assertEqual(
             {path.name: path.read_bytes() for path in directory.iterdir()},
             original_files,
         )
-        self.assertEqual(self.client.read, [(3, 42), (1, 42)])
+        self.assertEqual(self.client.read, [(3, 42), (1, 42), (1, 42)])
         self.assertEqual(
             self.client.sent,
             [
@@ -149,22 +153,30 @@ class HandlerTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_errors_do_not_log_message_content(self):
-        text = "first private error sentinel"
-
         class FailingClient:
+            def __init__(self, body):
+                self.body = body
+
             async def send_message(self, chat_id, text):
-                raise RuntimeError(text)
+                raise RuntimeError(self.body)
 
             async def read_chat_history(self, chat_id, message_id):
-                raise RuntimeError(text)
+                raise RuntimeError(self.body)
 
-        with self.assertLogs("user_bot", level="ERROR") as logs:
-            await self.handle_message(FailingClient(), message(text=text))
-        self.assertEqual(len(logs.output), 2)
-        self.assertNotIn(text, "\n".join(logs.output))
+        for chat_id in (1, 3):
+            for field in ("text", "caption"):
+                with self.subTest(chat_id=chat_id, field=field):
+                    body = "first private error sentinel"
+                    with self.assertLogs(level="ERROR") as logs:
+                        await self.handle_message(
+                            FailingClient(body),
+                            message(chat_id=chat_id, **{field: body}),
+                        )
+                    self.assertEqual(len(logs.output), 3 if chat_id == 3 else 2)
+                    self.assertNotIn(body, "\n".join(logs.output))
 
     async def test_message_equal_to_search_phrase_is_not_logged(self):
-        with self.assertLogs("user_bot", level="INFO") as logs:
+        with self.assertLogs(level="INFO") as logs:
             await self.handle_message(self.client, message(text="First"))
         self.assertNotIn("First", "\n".join(logs.output))
         self.assertEqual(
