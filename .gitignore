@@ -165,3 +165,7 @@ cython_debug/
 #  These files are used by the Telethon library to store session data.
 m_undefined.session
 m_undefined.session-journal
+
+# Local Telegram sessions and diagnostic exports
+*.session
+*.session-journal
