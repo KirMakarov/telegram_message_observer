@@ -122,6 +122,55 @@ class HandlerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.client.send_attempts, 1)
         self.assertEqual(self.client.read, [(1, 42)])
 
+    async def test_message_content_is_not_written_or_logged(self):
+        directory = Path(self.directory.name)
+        export = directory / "saved_messages_pyrogram_lib.txt"
+        export.write_text("existing export\n", encoding="utf-8")
+        original_files = {path.name: path.read_bytes() for path in directory.iterdir()}
+        text = "first private text sentinel"
+        caption = "second private caption sentinel"
+        with chdir(directory), self.assertLogs("user_bot", level="INFO") as logs:
+            await self.handle_message(self.client, message(chat_id=3, text=text))
+            await self.handle_message(self.client, message(caption=caption))
+        self.assertNotIn(text, "\n".join(logs.output))
+        self.assertNotIn(caption, "\n".join(logs.output))
+        self.assertEqual(
+            {path.name: path.read_bytes() for path in directory.iterdir()},
+            original_files,
+        )
+        self.assertEqual(self.client.read, [(3, 42), (1, 42)])
+        self.assertEqual(
+            self.client.sent,
+            [
+                ("recipient", "chat not in any lists: 3,  # Example"),
+                ("recipient", f"Found 'First' in message:\n{text}"),
+                ("recipient", f"Found 'second' in message:\n{caption}"),
+            ],
+        )
+
+    async def test_errors_do_not_log_message_content(self):
+        text = "first private error sentinel"
+
+        class FailingClient:
+            async def send_message(self, chat_id, text):
+                raise RuntimeError(text)
+
+            async def read_chat_history(self, chat_id, message_id):
+                raise RuntimeError(text)
+
+        with self.assertLogs("user_bot", level="ERROR") as logs:
+            await self.handle_message(FailingClient(), message(text=text))
+        self.assertEqual(len(logs.output), 2)
+        self.assertNotIn(text, "\n".join(logs.output))
+
+    async def test_message_equal_to_search_phrase_is_not_logged(self):
+        with self.assertLogs("user_bot", level="INFO") as logs:
+            await self.handle_message(self.client, message(text="First"))
+        self.assertNotIn("First", "\n".join(logs.output))
+        self.assertEqual(
+            self.client.sent, [("recipient", "Found 'First' in message:\nFirst")]
+        )
+
 
 class ChatSettingsTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):

@@ -8,7 +8,7 @@ A Telegram userbot for monitoring messages in specified chats and notifying you 
 - Notifies you when messages contain specified search phrases
 - Ignores messages from specified chats
 - Easily extendable: add search phrases, ignore lists, and more
-- Logs all activity for transparency and debugging
+- Logs processing activity without message text or captions
 - MIT Licensed
 
 ## Requirements

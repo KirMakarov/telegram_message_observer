@@ -72,7 +72,6 @@ async def handle_message(
     - Checks if the message's chat ID is in the ignored list and skips processing if so.
     - Ensures the message contains text or a caption; logs and returns if neither is present.
     - Logs a warning and notifies a recipient if the chat ID is not known or ignored.
-    - Logs the message text in a UTF-8 safe manner.
     - Searches for predefined phrases in the message text; if found, sends a notification to a recipient.
     - Marks the message as read after processing.
     - Handles and logs exceptions that may occur during message sending, logging, or marking as read.
@@ -105,21 +104,13 @@ async def handle_message(
                 text=f"chat not in any lists: {chat_id},  # {chat_name}",
             )
         except Exception as e:
-            logger.error(f"Error resending message: {e}")
-
-    try:
-        utf8_safe_text = message_text.encode("utf-8", errors="replace").decode(
-            "utf-8", errors="replace"
-        )
-        logger.info(f"chat ID: {chat_id} | text message: {utf8_safe_text[:50]}...")
-    except Exception as e:
-        logger.error(f"Error printing message: {e}")
+            logger.error("Error resending message (%s)", type(e).__name__)
 
     message_text_lower = message_text.lower() if message_text else ""
     matched_phrase = None
     for phrase in search_phrases.refresh():
         if phrase.lower() in message_text_lower:
-            logger.info(f"Found search phrase '{phrase}' in message.")
+            logger.info("Found a search phrase in message.")
             matched_phrase = phrase
             break
 
@@ -130,7 +121,7 @@ async def handle_message(
                 text=make_notification_message(message, matched_phrase),
             )
         except Exception as e:
-            logger.error(f"Error resending message: {e}")
+            logger.error("Error resending message (%s)", type(e).__name__)
     else:
         logger.info("No search phrases found in the message text. Message not resent.")
 
@@ -138,7 +129,7 @@ async def handle_message(
     try:
         await client.read_chat_history(chat_id, message.id)
     except Exception as e:
-        logger.error(f"Error marking message as read: {e}")
+        logger.error("Error marking message as read (%s)", type(e).__name__)
 
 
 def load_chat_settings(path: Path) -> ChatSettings:
