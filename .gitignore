@@ -172,3 +172,6 @@ m_undefined.session-journal
 
 # Private operator chat settings
 /chat_settings.toml
+
+# Private operator search phrases
+/search_phrases.txt
