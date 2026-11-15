@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from contextlib import chdir
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -220,8 +221,8 @@ recipient = 12345
             'known_chat_ids = [1]\nignored_chat_ids = [2]\nrecipient = "user"\n'
         )
         phrase_path = Path(self.directory.name) / "search_phrases.txt"
-        phrase_path.write_text("", encoding="utf-8")
-        with patch("user_bot.Path", side_effect=[self.path, phrase_path]), patch(
+        phrase_path.write_text("hello\n", encoding="utf-8")
+        with chdir(self.directory.name), patch(
             "user_bot.config",
             side_effect=lambda key, cast: {
                 "LOGIN": "test",
@@ -234,14 +235,24 @@ recipient = 12345
             bot.on_message.return_value = (
                 lambda handler: handlers.append(handler) or handler
             )
-            user_bot.main()
+            try:
+                user_bot.main()
+            except ValueError as exc:
+                self.fail(f"Valid configuration must allow startup: {exc}")
             bot.run.assert_called_once_with()
             client = FakeClient()
             await handlers[0](client, message(chat_id=3, text="hello"))
+            phrase_path.write_text("updated\n", encoding="utf-8")
+            await handlers[0](client, message(text="updated"))
             self.assertEqual(
-                client.sent, [("user", "chat not in any lists: 3,  # Example")]
+                client.sent,
+                [
+                    ("user", "chat not in any lists: 3,  # Example"),
+                    ("user", "Found 'hello' in message:\nhello"),
+                    ("user", "Found 'updated' in message:\nupdated"),
+                ],
             )
-            self.assertEqual(client.read, [(3, 42)])
+            self.assertEqual(client.read, [(3, 42), (1, 42)])
 
     def test_invalid_settings_prevent_startup(self):
         with patch("user_bot.Path", return_value=self.path), patch(
@@ -266,6 +277,23 @@ class SearchPhraseReloadTests(unittest.IsolatedAsyncioTestCase):
         await user_bot.handle_message(
             self.client, message(text=text), self.settings, self.phrases
         )
+
+    async def test_comments_blanks_and_substring_matching(self):
+        self.path.write_text("# comment\n  # indented\n\n  alpha  \n", encoding="utf-8")
+        await self.process("# comment and # indented")
+        await self.process("xxALPHAyy")
+        self.assertEqual(
+            self.client.sent,
+            [("recipient", "Found 'alpha' in message:\nxxALPHAyy")],
+        )
+        self.assertEqual(self.client.read, [(1, 42)] * 2)
+
+    async def test_empty_file_is_valid_at_startup(self):
+        self.path.write_text("", encoding="utf-8")
+        self.phrases = user_bot.SearchPhrases(self.path)
+        await self.process("alpha")
+        self.assertEqual(self.client.sent, [])
+        self.assertEqual(self.client.read, [(1, 42)])
 
     async def test_add_edit_remove_reorder_and_disable(self):
         await self.process("ALPHA beta")
@@ -314,16 +342,32 @@ class SearchPhraseReloadTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(self.client.read, [(1, 42)] * 4)
 
-    def test_missing_phrase_file_prevents_startup(self):
+    def test_unreadable_phrase_file_prevents_startup(self):
         settings_path = Path(self.directory.name) / "chat_settings.toml"
         settings_path.write_text(
             'known_chat_ids = []\nignored_chat_ids = []\nrecipient = "user"\n',
             encoding="utf-8",
         )
-        self.path.unlink()
-        with patch("user_bot.Path", side_effect=[settings_path, self.path]), patch(
-            "user_bot.Client"
-        ) as client_type:
-            with self.assertRaisesRegex(ValueError, "Cannot read search phrases"):
-                user_bot.main()
-            client_type.assert_not_called()
+        phrase_path = settings_path.with_name("search_phrases.txt")
+        for case in ("missing", "invalid UTF-8", "directory"):
+            with self.subTest(case=case):
+                if case == "invalid UTF-8":
+                    phrase_path.write_bytes(b"\xff")
+                elif case == "directory":
+                    phrase_path.unlink()
+                    phrase_path.mkdir()
+                with chdir(self.directory.name), patch(
+                    "user_bot.Client"
+                ) as client_type, patch(
+                    "user_bot.config",
+                    side_effect=lambda key, cast: {
+                        "LOGIN": "test",
+                        "API_ID": 1,
+                        "API_HASH": "hash",
+                    }[key],
+                ):
+                    with self.assertRaisesRegex(
+                        ValueError, "Cannot read search phrases"
+                    ):
+                        user_bot.main()
+                    client_type.assert_not_called()
