@@ -12,6 +12,7 @@ on:
       - '.pre-commit-config.yaml'
       - '.env.template'
       - 'chat_settings.example.toml'
+      - 'search_phrases.example.txt'
       - '.github/workflows/**'
   pull_request:
     branches: [main]
@@ -24,6 +25,7 @@ on:
       - '.pre-commit-config.yaml'
       - '.env.template'
       - 'chat_settings.example.toml'
+      - 'search_phrases.example.txt'
       - '.github/workflows/**'
 
 jobs:

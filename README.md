@@ -53,7 +53,13 @@ A Telegram userbot for monitoring messages in specified chats and notifying you 
    - Copy `chat_settings.example.toml` to `chat_settings.toml`. Set the known and
      ignored chat IDs and the notification recipient. The local file is ignored
      by Git. Chat IDs are integers; the recipient is an integer ID or username.
-   - Edit `search_phrases` in `main()` in `user_bot.py` as needed.
+   - Copy `search_phrases.example.txt` to `search_phrases.txt` and edit it.
+     Each nonblank line is a phrase; lines beginning with `#` are comments.
+     Matching ignores case and reports the first match in file order. Changes
+     apply to the next processed message; an empty file disables phrase alerts.
+     The file must exist and be readable when the bot starts.
+     If the file cannot be read after startup, the bot logs the error and keeps
+     the last successfully loaded phrases. The local file is ignored by Git.
 
 6. **Run the bot:**
    ```sh

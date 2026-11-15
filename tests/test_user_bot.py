@@ -37,7 +37,11 @@ def message(chat_id=1, text=None, caption=None, link=None):
 class HandlerTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.settings = user_bot.ChatSettings({1}, {2}, "recipient")
-        self.search_phrases = ["First", "second"]
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        path = Path(self.directory.name) / "phrases.txt"
+        path.write_text("First\nsecond\n", encoding="utf-8")
+        self.search_phrases = user_bot.SearchPhrases(path)
         self.client = FakeClient()
 
     async def handle_message(self, client, incoming):
@@ -169,14 +173,17 @@ recipient = 12345
 """)
         settings = user_bot.load_chat_settings(self.path)
         client = FakeClient()
+        phrase_path = Path(self.directory.name) / "phrases.txt"
+        phrase_path.write_text("first\n", encoding="utf-8")
+        phrases = user_bot.SearchPhrases(phrase_path)
         await user_bot.handle_message(
-            client, message(chat_id=2, text="first"), settings, ["first"]
+            client, message(chat_id=2, text="first"), settings, phrases
         )
         await user_bot.handle_message(
-            client, message(chat_id=1, text="first"), settings, ["first"]
+            client, message(chat_id=1, text="first"), settings, phrases
         )
         await user_bot.handle_message(
-            client, message(chat_id=3, text="first"), settings, ["first"]
+            client, message(chat_id=3, text="first"), settings, phrases
         )
         self.assertEqual(
             client.sent,
@@ -192,11 +199,14 @@ recipient = 12345
         first = user_bot.ChatSettings({1}, set(), "first recipient")
         second = user_bot.ChatSettings(set(), {1}, "second recipient")
         first_client, second_client = FakeClient(), FakeClient()
+        phrase_path = Path(self.directory.name) / "phrases.txt"
+        phrase_path.write_text("first\n", encoding="utf-8")
+        phrases = user_bot.SearchPhrases(phrase_path)
         await user_bot.handle_message(
-            first_client, message(text="first"), first, ["first"]
+            first_client, message(text="first"), first, phrases
         )
         await user_bot.handle_message(
-            second_client, message(text="first"), second, ["first"]
+            second_client, message(text="first"), second, phrases
         )
         self.assertEqual(
             first_client.sent, [("first recipient", "Found 'first' in message:\nfirst")]
@@ -209,7 +219,9 @@ recipient = 12345
         self.path.write_text(
             'known_chat_ids = [1]\nignored_chat_ids = [2]\nrecipient = "user"\n'
         )
-        with patch("user_bot.Path", return_value=self.path), patch(
+        phrase_path = Path(self.directory.name) / "search_phrases.txt"
+        phrase_path.write_text("", encoding="utf-8")
+        with patch("user_bot.Path", side_effect=[self.path, phrase_path]), patch(
             "user_bot.config",
             side_effect=lambda key, cast: {
                 "LOGIN": "test",
@@ -236,5 +248,80 @@ recipient = 12345
             "user_bot.Client"
         ) as client_type:
             with self.assertRaisesRegex(ValueError, "Cannot load chat settings"):
+                user_bot.main()
+            client_type.assert_not_called()
+
+
+class SearchPhraseReloadTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.path = Path(self.directory.name) / "phrases.txt"
+        self.path.write_text("alpha\n", encoding="utf-8")
+        self.phrases = user_bot.SearchPhrases(self.path)
+        self.settings = user_bot.ChatSettings({1}, set(), "recipient")
+        self.client = FakeClient()
+
+    async def process(self, text):
+        await user_bot.handle_message(
+            self.client, message(text=text), self.settings, self.phrases
+        )
+
+    async def test_add_edit_remove_reorder_and_disable(self):
+        await self.process("ALPHA beta")
+        self.path.write_text("# comment\n  beta  \nalpha\n\n", encoding="utf-8")
+        await self.process("ALPHA beta")
+        self.path.write_text("gamma\n", encoding="utf-8")
+        await self.process("ALPHA gamma")
+        self.path.write_text("  # disabled\n\n", encoding="utf-8")
+        await self.process("gamma")
+        self.path.write_text("delta\n", encoding="utf-8")
+        await self.process("DELTA")
+        self.assertEqual(
+            self.client.sent,
+            [
+                ("recipient", "Found 'alpha' in message:\nALPHA beta"),
+                ("recipient", "Found 'beta' in message:\nALPHA beta"),
+                ("recipient", "Found 'gamma' in message:\nALPHA gamma"),
+                ("recipient", "Found 'delta' in message:\nDELTA"),
+            ],
+        )
+        self.assertEqual(self.client.read, [(1, 42)] * 5)
+
+    async def test_read_error_keeps_last_successful_list_and_recovers(self):
+        self.path.write_text("beta\n", encoding="utf-8")
+        await self.process("beta")
+        self.path.unlink()
+        with self.assertLogs("user_bot", level="ERROR") as captured:
+            await self.process("beta")
+        self.assertIn("Cannot read search phrases", captured.output[0])
+        self.assertIn("keeping previous search phrases", captured.output[0])
+        self.path.write_bytes(b"\xff")
+        with self.assertLogs("user_bot", level="ERROR"):
+            await self.process("beta")
+        self.path.write_text("gamma\n", encoding="utf-8")
+        await self.process("gamma")
+        self.assertEqual(
+            self.client.sent,
+            [
+                ("recipient", "Found 'beta' in message:\nbeta"),
+                ("recipient", "Found 'beta' in message:\nbeta"),
+                ("recipient", "Found 'beta' in message:\nbeta"),
+                ("recipient", "Found 'gamma' in message:\ngamma"),
+            ],
+        )
+        self.assertEqual(self.client.read, [(1, 42)] * 4)
+
+    def test_missing_phrase_file_prevents_startup(self):
+        settings_path = Path(self.directory.name) / "chat_settings.toml"
+        settings_path.write_text(
+            'known_chat_ids = []\nignored_chat_ids = []\nrecipient = "user"\n',
+            encoding="utf-8",
+        )
+        self.path.unlink()
+        with patch("user_bot.Path", side_effect=[settings_path, self.path]), patch(
+            "user_bot.Client"
+        ) as client_type:
+            with self.assertRaisesRegex(ValueError, "Cannot read search phrases"):
                 user_bot.main()
             client_type.assert_not_called()

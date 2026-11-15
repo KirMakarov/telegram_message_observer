@@ -16,6 +16,34 @@ class ChatSettings:
     recipient: Union[int, str]
 
 
+class SearchPhrases:
+    def __init__(self, path: Path):
+        self.path = path
+        self.phrases = self._read()
+
+    def _read(self) -> list[str]:
+        try:
+            lines = self.path.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeError) as exc:
+            raise ValueError(
+                f"Cannot read search phrases from {self.path}: {exc}"
+            ) from exc
+        return [
+            line.strip()
+            for line in lines
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+
+    def refresh(self) -> list[str]:
+        try:
+            self.phrases = self._read()
+        except ValueError as exc:
+            logging.getLogger(__name__).error(
+                "%s; keeping previous search phrases", exc
+            )
+        return self.phrases
+
+
 def get_chat_id(message: Message) -> Union[str, int]:
     """Extract chat ID from message, fallback to 'Unknown'."""
     return getattr(getattr(message, "chat", None), "id", "Unknown")
@@ -34,7 +62,10 @@ def get_chat_name(message: Message) -> str:
 
 
 async def handle_message(
-    client: Client, message: Message, settings: ChatSettings, search_phrases: list[str]
+    client: Client,
+    message: Message,
+    settings: ChatSettings,
+    search_phrases: SearchPhrases,
 ):
     """
     Asynchronously handles incoming Telegram messages by performing the following actions:
@@ -86,7 +117,7 @@ async def handle_message(
 
     message_text_lower = message_text.lower() if message_text else ""
     matched_phrase = None
-    for phrase in search_phrases:
+    for phrase in search_phrases.refresh():
         if phrase.lower() in message_text_lower:
             logger.info(f"Found search phrase '{phrase}' in message.")
             matched_phrase = phrase
@@ -139,7 +170,7 @@ def main() -> None:
         format="%(asctime)s | %(levelname)s | %(message)s", level=logging.INFO
     )
     settings = load_chat_settings(Path("chat_settings.toml"))
-    search_phrases: list[str] = []
+    search_phrases = SearchPhrases(Path("search_phrases.txt"))
     bot = Client(
         name=config("LOGIN", cast=str),
         api_id=config("API_ID", cast=int),
