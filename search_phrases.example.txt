@@ -1,0 +1,4 @@
+# One search phrase per line. Blank lines and comments are ignored.
+# Matching ignores letter case; the first matching phrase is reported.
+example phrase
+another example

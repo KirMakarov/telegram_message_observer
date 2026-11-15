@@ -13,7 +13,7 @@ A Telegram userbot for monitoring messages in specified chats and notifying you 
 
 ## Requirements
 
-- Python 3.13+
+- Python 3.14+
 - Telegram API credentials (API_ID, API_HASH, LOGIN)
 - See `requirements.txt` for Python dependencies
 
@@ -29,7 +29,7 @@ A Telegram userbot for monitoring messages in specified chats and notifying you 
 2. **Create and activate a virtual environment (recommended):**
 
    ```sh
-   python3.13 -m venv venv
+   python3.14 -m venv venv
    source venv/bin/activate
    ```
 
@@ -48,13 +48,22 @@ A Telegram userbot for monitoring messages in specified chats and notifying you 
    LOGIN=your_session_name
    ```
 
-5. **Configure search and ignore lists:**
+5. **Configure chats and search phrases:**
 
-   - Edit `user_bot.py` to set `SOURCE_CHAT_IDS`, `IGNORE_CHAT_IDS`, and `SEARCH_PHRASES` as needed.
+   - Copy `chat_settings.example.toml` to `chat_settings.toml`. Set the known and
+     ignored chat IDs and the notification recipient. The local file is ignored
+     by Git. Chat IDs are integers; the recipient is an integer ID or username.
+   - Copy `search_phrases.example.txt` to `search_phrases.txt` and edit it.
+     Each nonblank line is a phrase; lines beginning with `#` are comments.
+     Matching ignores case and reports the first match in file order. Changes
+     apply to the next processed message; an empty file disables phrase alerts.
+     The file must exist and be readable when the bot starts.
+     If the file cannot be read after startup, the bot logs the error and keeps
+     the last successfully loaded phrases. The local file is ignored by Git.
 
 6. **Run the bot:**
    ```sh
-   python3.13 user_bot.py
+   python3.14 user_bot.py
    ```
 
 ## Roadmap
