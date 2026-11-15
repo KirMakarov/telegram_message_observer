@@ -169,3 +169,6 @@ m_undefined.session-journal
 # Local Telegram sessions and diagnostic exports
 *.session
 *.session-journal
+
+# Private operator chat settings
+/chat_settings.toml

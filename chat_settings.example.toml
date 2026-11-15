@@ -1,0 +1,9 @@
+# Copy this file to chat_settings.toml and replace the illustrative values.
+known_chat_ids = [
+    -1001234567890, # Example source
+]
+ignored_chat_ids = [
+    -1009876543210, # Example ignored chat
+]
+# Telegram username or numeric chat ID receiving notifications
+recipient = "example_recipient"
